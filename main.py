@@ -1,4 +1,16 @@
-import sys
+"""
+Главное окно, кнопки, вкладки, обработка действий пользователя
+"""
+"""
+Создаётся главное окно MainWindow.
+Создаются экран входа и основной экран с вкладками.
+Загружается каталог рецептов из recipes.json.
+Загружаются продукты холодильника и история сеансов, если соответствующие файлы существуют.
+Пользователь входит под логином. Программа записывает время входа.
+Пользователь работает с холодильником и рецептами.
+При выходе из аккаунта или закрытии программы фиксируется время выхода и сохраняются необходимые данные.
+"""
+import sys # это чтоб получить инфу о запуске закрытии проги
 import json
 
 from PyQt6.QtWidgets import (
@@ -6,23 +18,15 @@ from PyQt6.QtWidgets import (
     QMainWindow,
     QWidget,
     QLabel,
-    QLineEdit,
-    QPushButton,
     QVBoxLayout,
     QHBoxLayout,
     QStackedWidget,
     QMessageBox,
-    QTabWidget,
     QGroupBox,
     QFormLayout,
-    QComboBox,
-    QDoubleSpinBox,
-    QTableWidget,
     QTableWidgetItem,
     QHeaderView,
     QAbstractItemView,
-    QListWidget,
-    QTextEdit,
     QSplitter
 )
 from PyQt6.QtCore import Qt
@@ -46,27 +50,28 @@ from datetime import datetime
 from pathlib import Path
 
 class MainWindow(QMainWindow):
+    """тут определяется главное окно приложения"""
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("Домашний органайзер Lite")
-        self.resize(950, 650)
+        self.setWindowTitle("Домашний органайзер Lite")# название приложение
+        self.resize(950, 650)# размер окна приложения
 
         # Главный контейнер-переключатель окон
-        self.stacked_widget = QStackedWidget()
-        self.setCentralWidget(self.stacked_widget)
-        self.fridge_products = []
+        self.stacked_widget = QStackedWidget() # тут типо создается многостроничный контейнер и можно показывать их 
+        self.setCentralWidget(self.stacked_widget) # без этого не будет отображаться. содает по центру экрана
+        self.fridge_products = [] # список в котором хранятся продукты холодильника
 
         # Защита от перезаписи повреждённых файлов
         self.fridge_load_failed = False
         self.session_history_load_failed = False
 
         # Завершённые сеансы текущего запуска
-        self.session_records = []
+        self.session_records = [] # тут храниться запись текущей сессии
 
         # Текущий активный сеанс
-        self.active_session = None
+        self.active_session = None # эта штука None до тех пор пока не залогинишся 
         
-        # Определяем папку приложения.
+        # эта штука нужна чтобы приложение знало правильный путь к папке с программой
         # При обычном запуске это папка проекта,
         # при запуске EXE — папка с исполняемым файлом.
         if getattr(sys, "frozen", False):
@@ -77,7 +82,7 @@ class MainWindow(QMainWindow):
         # Путь к текстовому отчёту
         self.report_path = self.app_dir / "session_report.txt"
 
-        # Путь к данным холодильника
+        # создает путь к списку холодильника
         self.fridge_path = (
             self.app_dir / "data" / "fridge.json"
         )
@@ -87,69 +92,67 @@ class MainWindow(QMainWindow):
             self.app_dir / "data" / "session_records.json"
         )
 
-        # Создаем и добавляем экраны
+        # Создается экран логина и главный экран
         self.init_login_screen()
         self.init_main_screen()
 
         # Загружаем сохранённые продукты
-        self.load_fridge()
-        self.load_session_records()
+        self.load_fridge() # он загружает в приложение сохраненные продукты из json файла холодильника
+        self.load_session_records() # также из json загружает записи прошлой сессии
 
         # Показываем первый экран (индекс 0 - логин)
-        self.stacked_widget.setCurrentIndex(0)
+        self.stacked_widget.setCurrentIndex(0) # принудительно запускает экран логина 
 
     def init_login_screen(self):
         """Создание экрана логина (Страница 0)"""
         login_page = QWidget()
         layout = QVBoxLayout(login_page)
-        layout.setAlignment(Qt.AlignmentFlag.AlignTop)  # Сдвигаем элементы к верху страницы
+        layout.setAlignment(Qt.AlignmentFlag.AlignTop)  # Сдвигаем элементы к верху страницы в центр и растягиваем на всю высоту (так и не понял)
 
         # Верхняя панель авторизации
         auth_box = QHBoxLayout()
         
-        self.login_input = UsernameInput()
-        self.login_input.setPlaceholderText("Введите логин...")
-        self.login_input.setFixedWidth(200)
+        self.login_input = UsernameInput() # создается поле логина
+        self.login_input.setPlaceholderText("Введите логин...") # пишем в это поле текст подсказку
+        self.login_input.setFixedWidth(200) # задается ширина поля логина 
 
-        login_button = OrganizerButton("Войти")
-        login_button.clicked.connect(self.handle_login)
+        login_button = OrganizerButton("Войти") # создается кнопка входа
+        login_button.clicked.connect(self.handle_login) # говорит что при происходи при нажатии кнопки
 
-        auth_box.addWidget(QLabel("Логин:"))
-        auth_box.addWidget(self.login_input)
-        auth_box.addWidget(login_button)
+        auth_box.addWidget(QLabel("Логин:")) # типо сначала появлятся надпись логин
+        auth_box.addWidget(self.login_input) # потом появляется поле
+        auth_box.addWidget(login_button) # потом появляется кнопка логина
         auth_box.addStretch() # Сдвигает элементы влево внутри QHBoxLayout
 
-        layout.addLayout(auth_box)
+        layout.addLayout(auth_box) # это чтобы не растянулось на всю ширину 
 
         # Нижняя (пустая пока) часть экрана логина
         welcome_label = QLabel("\n\nПожалуйста, авторизуйтесь для доступа к системе.")
-        welcome_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        welcome_label.setAlignment(Qt.AlignmentFlag.AlignCenter) # выравнивае по центру
         layout.addWidget(welcome_label)
 
         # Добавляем страницу в менеджер окон
-        self.stacked_widget.addWidget(login_page)
-
-    
+        self.stacked_widget.addWidget(login_page) # завершает создание окна и дает ему индекс 0 по которому его можно насильно активировать    
     
     def init_main_screen(self):
         """Создание главного экрана приложения."""
 
-        main_page = QWidget()
-        layout = QVBoxLayout(main_page)
+        main_page = QWidget() # создается второй виджет с индексом 1
+        layout = QVBoxLayout(main_page) # какая то вертикальная разметка по которой будут размещаться все элементы потом
 
         # Приветствие пользователя
-        self.user_greeting = QLabel("")
+        self.user_greeting = QLabel("") # создается приветсвие. "" пустое так как заранее не знает он забирает имя из handle_login
         self.user_greeting.setStyleSheet(
-            "font-size: 16px; font-weight: bold; color: green;"
+            "font-size: 16px; font-weight: bold; color: green;" # делает размер текста 16 шрифт жирным и цвет зеленым 
         )
-        layout.addWidget(self.user_greeting)
+        layout.addWidget(self.user_greeting) # добавляет на страницу в самый вверх так как создается самой первой
 
         # Создание вкладок
         self.tabs = OrganizerTabWidget()
 
-        # ==========================================
-        # ВКЛАДКА 1. ХОЛОДИЛЬНИК
-        # ==========================================
+        
+        # ----------------ВКЛАДКА 1. ХОЛОДИЛЬНИК----------------------
+        
 
         self.tab1 = QWidget()
         tab1_layout = QVBoxLayout(self.tab1)
@@ -269,9 +272,9 @@ class MainWindow(QMainWindow):
         self.tabs.addTab(self.tab1, "Холодильник")
 
         
-        # ==========================================
-        # ВКЛАДКА 2. РЕЦЕПТЫ
-        # ==========================================
+        
+        # ------------------ВКЛАДКА 2. РЕЦЕПТЫ--------------
+        
 
         self.tab2 = QWidget()
         tab2_layout = QVBoxLayout(self.tab2)
@@ -506,7 +509,7 @@ class MainWindow(QMainWindow):
     def match_fridge_recipes(self):
         """Подбирает рецепты по названиям продуктов холодильника."""
 
-        if not self.fridge_products:
+        if not self.fridge_products: # если ничего нет выдает это
             self._display_recipes(
                 [],
                 "Добавьте продукты в холодильник для подбора рецептов."
@@ -542,45 +545,45 @@ class MainWindow(QMainWindow):
             if matched > 0:
                 results.append((recipe, matched, total))
 
-        # Сначала рецепты с большей долей совпадений,
-        # затем — с большим числом совпавших ингредиентов
-        results.sort(
-            key=lambda item: (
-                item[1] / item[2],
-                item[1]
-            ),
-            reverse=True
-        )
-
-        matching_recipes = [
-            recipe
-            for recipe, matched, total in results
-        ]
-
-        labels = [
-            f"{recipe.title} — совпадений: {matched}/{total}"
-            for recipe, matched, total in results
-        ]
-
-        if results:
-            status_text = (
-                f"Найдено рецептов: {len(results)}. "
-                "Сортировка по доле совпавших ингредиентов. "
-                "Количество продуктов не учитывается."
-            )
-        else:
-            status_text = (
-                "Не найдено рецептов с указанными продуктами."
+            # Сначала рецепты с большей долей совпадений,
+            # затем — с большим числом совпавших ингредиентов
+            results.sort(
+                key=lambda item: (
+                    item[1] / item[2],
+                    item[1]
+                ),
+                reverse=True
             )
 
-        self._display_recipes(
-            matching_recipes,
-            status_text,
-            labels
-        )
+            matching_recipes = [
+                recipe
+                for recipe, matched, total in results
+            ]
+
+            labels = [
+                f"{recipe.title} — совпадений: {matched}/{total}"
+                for recipe, matched, total in results
+            ]
+
+            if results:
+                status_text = (
+                    f"Найдено рецептов: {len(results)}. "
+                    "Сортировка по доле совпавших ингредиентов. "
+                    "Количество продуктов не учитывается."
+                )
+            else:
+                status_text = (
+                    "Не найдено рецептов с указанными продуктами."
+                )
+
+            self._display_recipes(
+                matching_recipes,
+                status_text,
+                labels
+            )
 
     def show_all_recipes(self):
-        """Возвращает полный каталог рецептов."""
+        """очищает поле поиска возвращает полный каталог рецептов."""
 
         self.recipe_search_input.clear()
 
@@ -590,7 +593,7 @@ class MainWindow(QMainWindow):
         )
 
     def show_selected_recipe(self, row):
-        """Показывает подробности выбранного рецепта."""
+        """получает номер выбранной строки и показывает рецепт в этой строке по очереди название ингрид и инструкция."""
 
         if row < 0 or row >= len(self.displayed_recipes):
             return
@@ -600,7 +603,7 @@ class MainWindow(QMainWindow):
         self.recipe_title_label.setText(recipe.title)
 
         ingredients_text = "\n".join(
-            str(ingredient)
+            str(ingredient) # ингридиенты преобразуются в строки
             for ingredient in recipe.ingredients
         )
 
@@ -614,7 +617,7 @@ class MainWindow(QMainWindow):
 
     
     def handle_login(self):
-        """Вход пользователя и начало сеанса работы."""
+        """типо вход. вводим логин проверяем что он не пустой."""
 
         username = self.login_input.text().strip()
 
@@ -629,7 +632,7 @@ class MainWindow(QMainWindow):
         # Создаём запись об активном сеансе
         self.active_session = SessionRecord(
             username,
-            datetime.now()
+            datetime.now() #возвращает время и дату
         )
 
         self.user_greeting.setText(
@@ -680,7 +683,7 @@ class MainWindow(QMainWindow):
         )
 
     def load_fridge(self):
-        """Загружает продукты и проверяет целостность JSON-файла."""
+        """Загружает продукты из json также проверяет нормалная ли запись если нет говорит об этом ."""
 
         self.fridge_load_failed = False
 
@@ -1013,7 +1016,7 @@ class MainWindow(QMainWindow):
             )
 
     def save_fridge(self):
-        """Сохраняет продукты, если файл был успешно загружен."""
+        """сохраняет продукты переводит их в список списков(dict по задания низя) и кидает в json ."""
 
         if self.fridge_load_failed:
             return False
@@ -1056,7 +1059,7 @@ class MainWindow(QMainWindow):
         return True
 
     def add_product(self):
-        """Добавляет продукт или увеличивает существующее количество."""
+        """Добавляет продукт или увеличивает существующее количество также проверяет можно ли его вообще менять."""
 
         if self.fridge_load_failed:
             QMessageBox.warning(
@@ -1155,7 +1158,7 @@ class MainWindow(QMainWindow):
 
     
     def handle_logout(self):
-        """Завершает сеанс и сохраняет историю."""
+        """Завершает сеанс сохраняет в json репорт и сохраняет историю."""
 
         if self.active_session is not None:
             self.active_session.time_out = datetime.now()
@@ -1260,7 +1263,7 @@ class MainWindow(QMainWindow):
         )
 
     def closeEvent(self, event):
-        """Завершает сеанс и сохраняет данные приложения."""
+        """Завершает сеанс и сохраняет данные приложения. это нужно на случай если закрыли крестиком а не вышли из акка и потом закрыли"""
 
         if self.active_session is not None:
             self.active_session.time_out = datetime.now()

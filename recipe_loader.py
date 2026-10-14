@@ -1,4 +1,6 @@
-
+"""
+Читает JSON и создаёт объекты рецептов
+"""
 import json
 from pathlib import Path
 
@@ -39,7 +41,7 @@ class RecipeLoader:
             ) as file:
                 data = json.load(
                     file,
-                    object_pairs_hook=CustomMap
+                    object_pairs_hook=CustomMap # вместо dict кастомный класс
                 )
 
         except FileNotFoundError as error:

@@ -1,3 +1,8 @@
+"""
+Классы продуктов, ингредиентов, рецептов и сеансов
+гетеры сетеры это @property 
+"""
+
 from abc import ABC, abstractmethod
 from datetime import datetime
 
@@ -139,7 +144,7 @@ class Product(BaseEntity):
 
 
 class Ingredient(BaseEntity):
-    """Ингредиент, используемый в рецепте."""
+    """Ингредиент, используемый в рецепте. ингридент это не продукт холодильника по коду так что разные классы"""
 
     def __init__(self, name, quantity, unit):
         self.name = name
@@ -423,7 +428,7 @@ class Recipe(BaseEntity):
 class SessionRecord(BaseEntity):
     """Хранит данные об одном сеансе работы пользователя."""
 
-    def __init__(self, login, time_in, time_out=None):
+    def __init__(self, login, time_in, time_out=None): # None потому что не известо время выхода ссамого начала
         self.login = login
         self.time_in = time_in
         self.time_out = time_out
@@ -549,4 +554,4 @@ class SessionRecord(BaseEntity):
     def __bool__(self):
         """Возвращает True, если сеанс ещё активен."""
 
-        return self.time_out is None
+        return self.time_out is None # None потому что не известо время выхода ссамого начала

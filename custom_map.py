@@ -1,4 +1,6 @@
-
+"""
+Собственный класс для работы с ключами и значениями
+"""
 from collections.abc import MutableMapping
 
 
