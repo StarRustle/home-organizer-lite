@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+*.py[cod]
+
+# Виртуальное окружение
+venv/
+.venv/
+env/
+
+# PyInstaller
+build/
+dist/
+*.spec
+
+# Данные пользователя
+session_report.txt
+data/fridge.json
+data/session_records.json
+
+# Настройки редакторов
+.vscode/
+.idea/
+
+# Системные файлы Windows
+Thumbs.db
+Desktop.ini
